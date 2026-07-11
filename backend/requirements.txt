@@ -1,5 +1,7 @@
+# FastAPI backend dependencies
 fastapi==0.116.1
 uvicorn[standard]==0.35.0
 supabase==2.16.0
 google-genai==1.26.0
 python-dotenv==1.1.1
+python-multipart==0.0.32
