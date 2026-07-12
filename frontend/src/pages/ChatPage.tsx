@@ -33,26 +33,29 @@ export function ChatPage() {
   ])
   const [showStatus, setShowStatus] = useState(false)
   const [totalClasses, setTotalClasses] = useState(15)
-  const [attendanceRate, setAttendanceRate] = useState(67)
-  const [absentClasses, setAbsentClasses] = useState(2)
+  const [absenceAllowance, setAbsenceAllowance] = useState(5)
+  const [missedAssignments, setMissedAssignments] = useState(0)
   const [deadlineMonth, setDeadlineMonth] = useState(() => new Date().getMonth() + 1)
   const [deadlineDay, setDeadlineDay] = useState(() => new Date().getDate())
   const [assignmentStatus, setAssignmentStatus] = useState<AssignmentStatus>('not_started')
   const didHandleInitial = useRef(false)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const requiredAttendanceRate = totalClasses > 0
+    ? Math.max(0, Math.min(100, ((totalClasses - absenceAllowance) / totalClasses) * 100))
+    : 0
 
   const createReply = useCallback((message: string) => {
     const deadline = deadlineAtEndOfDay(deadlineMonth, deadlineDay)
     if (/喝|サボ|やる気|危険度|落単/.test(message)) {
-      return calculateRisk({ totalClasses, requiredAttendanceRate: attendanceRate / 100, absentClasses, assignmentStatus, deadline }).message
+      return calculateRisk({ totalClasses, requiredAttendanceRate: requiredAttendanceRate / 100, remainingAbsenceAllowance: absenceAllowance, missedAssignments, assignmentStatus, deadline }).message
     }
     if (/休|欠席|出席/.test(message)) {
-      return calculateRisk({ totalClasses, requiredAttendanceRate: attendanceRate / 100, absentClasses, assignmentStatus, deadline }).message
+      return calculateRisk({ totalClasses, requiredAttendanceRate: requiredAttendanceRate / 100, remainingAbsenceAllowance: absenceAllowance, missedAssignments, assignmentStatus, deadline }).message
     }
     if (/課題|レポート|締切/.test(message)) {
       if (deadline) {
-        return calculateRisk({ totalClasses, requiredAttendanceRate: attendanceRate / 100, absentClasses, assignmentStatus, deadline }).message
+        return calculateRisk({ totalClasses, requiredAttendanceRate: requiredAttendanceRate / 100, remainingAbsenceAllowance: absenceAllowance, missedAssignments, assignmentStatus, deadline }).message
       }
       return '課題は、まず資料を開いて「提出物・締切・評価基準」の3つを確認しよう。最初の10分で見出しだけ作ると進めやすいよ！'
     }
@@ -63,7 +66,7 @@ export function ChatPage() {
       return 'もちろん。分からない言葉をそのまま送ってね。講義でどう使われているかも含めて、かみ砕いて説明するよ。'
     }
     return '相談してくれてありがとう。状況に合った答えを考えたいので、授業名や締切、困っていることをもう少し教えてね。'
-  }, [absentClasses, assignmentStatus, attendanceRate, deadlineDay, deadlineMonth, totalClasses])
+  }, [absenceAllowance, assignmentStatus, deadlineDay, deadlineMonth, missedAssignments, requiredAttendanceRate, totalClasses])
 
   const sendMessage = useCallback((text: string, attachment?: File) => {
     const trimmed = text.trim()
@@ -79,8 +82,9 @@ export function ChatPage() {
         const settings = {
           context: {
             total_classes: totalClasses,
-            required_attendance_rate: attendanceRate / 100,
-            absent_classes: absentClasses,
+            required_attendance_rate: requiredAttendanceRate / 100,
+            remaining_absence_allowance: absenceAllowance,
+            missed_assignments: missedAssignments,
             assignment_status: assignmentStatus,
             deadline: deadline ? `${deadlineMonth}月${deadlineDay}日 23:59` : null,
           },
@@ -116,7 +120,7 @@ export function ChatPage() {
       setMessages((prev) => [...prev, { id: id + 1, role: 'assistant', text: reply }])
       setIsThinking(false)
     }, 350)
-  }, [absentClasses, assignmentStatus, attendanceRate, createReply, deadlineDay, deadlineMonth, totalClasses])
+  }, [absenceAllowance, assignmentStatus, createReply, deadlineDay, deadlineMonth, missedAssignments, requiredAttendanceRate, totalClasses])
 
   useEffect(() => {
     if (initialMessage && !didHandleInitial.current) {
@@ -182,17 +186,18 @@ export function ChatPage() {
 
       <div className="border-b border-zinc-200 bg-white px-4 py-2">
         <button onClick={() => setShowStatus((value) => !value)} className="flex w-full items-center justify-between text-sm font-medium text-zinc-600">
-          出席・課題状況を登録（喝判定にも使用）
+          ぽけ先輩による落単危険度診断
           <ChevronDown className={`h-4 w-4 transition ${showStatus ? 'rotate-180' : ''}`} />
         </button>
         {showStatus && (
           <div className="mt-3 grid grid-cols-2 gap-2 pb-2 text-xs">
             <label>授業回数<input type="number" min="1" value={totalClasses} onChange={(e) => setTotalClasses(Number(e.target.value))} className="mt-1 w-full rounded-lg border border-zinc-300 px-2 py-2" /></label>
-            <label>必要出席率（%）<input type="number" min="0" max="100" value={attendanceRate} onChange={(e) => setAttendanceRate(Number(e.target.value))} className="mt-1 w-full rounded-lg border border-zinc-300 px-2 py-2" /></label>
-            <label>欠席回数<input type="number" min="0" value={absentClasses} onChange={(e) => setAbsentClasses(Number(e.target.value))} className="mt-1 w-full rounded-lg border border-zinc-300 px-2 py-2" /></label>
+            <label>必要出席率（自動計算）<input type="text" readOnly value={`${requiredAttendanceRate.toFixed(1)}%`} className="mt-1 w-full cursor-not-allowed rounded-lg border border-zinc-200 bg-zinc-100 px-2 py-2 text-zinc-600" /></label>
+            <label>欠席許容回数<input type="number" min="0" max={Math.max(0, totalClasses)} value={absenceAllowance} onChange={(e) => setAbsenceAllowance(Number(e.target.value))} className="mt-1 w-full rounded-lg border border-zinc-300 px-2 py-2" /></label>
             <label>課題状況<select value={assignmentStatus} onChange={(e) => setAssignmentStatus(e.target.value as AssignmentStatus)} className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-2 py-2"><option value="not_started">未着手</option><option value="in_progress">進行中</option><option value="submitted">提出済み</option></select></label>
+            <label>課題提出忘れの回数<input type="number" min="0" value={missedAssignments} onChange={(e) => setMissedAssignments(Number(e.target.value))} className="mt-1 w-full rounded-lg border border-zinc-300 px-2 py-2" /></label>
             <fieldset className="col-span-2">
-              <legend>課題の締切（今年・当日23:59まで）</legend>
+              <legend>直近の課題の締切</legend>
               <div className="mt-1 flex items-center gap-2">
                 <label className="flex flex-1 items-center gap-1">
                   <input type="number" min="1" max="12" value={deadlineMonth} onChange={(e) => setDeadlineMonth(Number(e.target.value))} className="w-full rounded-lg border border-zinc-300 px-2 py-2" />
@@ -206,7 +211,7 @@ export function ChatPage() {
               {!deadlineAtEndOfDay(deadlineMonth, deadlineDay) && <p className="mt-1 text-red-600">正しい月日を入力してください。</p>}
             </fieldset>
             <button type="button" onClick={() => sendMessage('今の状況を判定して、喝を入れて！')} disabled={isThinking || !deadlineAtEndOfDay(deadlineMonth, deadlineDay)} className="col-span-2 mt-1 rounded-full bg-[#ff5d5d] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">
-              この状況で喝を入れて
+              決定
             </button>
           </div>
         )}
