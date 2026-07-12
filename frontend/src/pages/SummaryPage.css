@@ -1,0 +1,264 @@
+/* ページ全体のコンテナ */
+.summary-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #f9f9f9;
+}
+
+/* ヘッダー */
+.summary-header {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  position: relative;
+}
+
+.summary-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+  flex-grow: 1;
+}
+
+.back-button {
+  position: absolute;
+  left: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-button:hover {
+  background-color: #f0f0f0;
+}
+
+/* メインコンテンツ */
+.summary-main {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+/* --- 種類選択画面のスタイル --- */
+.selection-view {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.selection-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 144px; /* 9rem */
+  cursor: pointer;
+  border-radius: 28px;
+  border: 2px solid #ff5d5d;
+  background-color: white;
+  font-size: 1.5rem; /* 24px */
+  color: #18181b; /* zinc-900 */
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.selection-button:hover {
+  background-color: #fff1f2; /* rose-50 */
+}
+
+.selection-button.disabled {
+  border-color: #a1a1aa; /* zinc-400 */
+  background-color: #f4f4f5; /* zinc-100 */
+  color: #71717a; /* zinc-500 */
+  cursor: not-allowed;
+}
+
+.selection-icon {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 0.5rem;
+  color: #ff5d5d;
+}
+
+.selection-button.disabled .selection-icon {
+  color: #a1a1aa; /* zinc-400 */
+}
+
+/* --- ファイル選択画面のスタイル --- */
+
+/* ドラッグ&ドロップ領域 */
+.drop-zone {
+  width: 100%;
+  max-width: 400px;
+  height: 250px;
+  border: 2px dashed #ccc;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: #888;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.drop-zone.dragging {
+  background-color: #eef7ff;
+  border-color: #1b9af7;
+}
+
+.file-upload-label {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.file-upload-label p {
+  margin: 0;
+}
+
+.browse-button {
+  background-color: #1b9af7;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.file-info {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-top: 0.5rem;
+}
+
+/* input[type="file"]は非表示にする */
+.drop-zone input[type='file'] {
+  display: none;
+}
+
+/* --- 送信確認画面のスタイル --- */
+
+.confirmation-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+.file-icon {
+  color: #666;
+}
+
+.file-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.file-size {
+  font-size: 0.9rem;
+  color: #888;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.button-group button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.cancel-button {
+  background-color: #f0f0f0;
+  color: #555;
+}
+.cancel-button:hover {
+  background-color: #e0e0e0;
+}
+
+.submit-button {
+  background-color: #1b9af7;
+  color: white;
+}
+.submit-button:hover {
+  background-color: #157ac0;
+}
+
+/* --- アップロード中画面のスタイル --- */
+
+.uploading-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 400px;
+  color: #333;
+}
+
+.uploading-view p {
+  margin: 0;
+  font-weight: 500;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 20px;
+  background-color: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #1b9af7;
+  border-radius: 10px;
+  transition: width 0.2s ease-in-out;
+  /* グラデーションを追加して見栄えを良くする */
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent
+  );
+  background-size: 40px 40px;
+  animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+  from {
+    background-position: 40px 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}

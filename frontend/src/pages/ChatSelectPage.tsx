@@ -1,54 +1,81 @@
-// アイコンとページ遷移のためのフックをインポート
-import { ArrowLeft, MessageCircle } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-// チャットのトピック一覧データをインポート
-import { chatTopics } from '../mock/chatData'
+// Reactのフック、アイコン、ページ遷移のためのフックをインポート
+import { useState } from 'react';
+import { ArrowLeft, MessageCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+// 新しく定義したチャットデータをインポート
+import { weeklySchedule, otherTopics, dayMap, dayOrder } from '../mock/chatData';
+// このコンポーネント専用のCSSファイルをインポート
+import './ChatSelectPage.css';
 
 /**
  * ChatSelectPage: 相談したいチャットのトピックを選択するページコンポーネント。
+ * 曜日ごとの授業と、その他のトピックを選択できる。
  */
 export function ChatSelectPage() {
   // useNavigateフックを使って、ページ遷移を制御する関数を取得
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  // 現在選択されている曜日タブを管理するstate
+  const [activeTab, setActiveTab] = useState('monday');
 
   return (
-    <>
+    <div className="chat-select-page">
       {/* ヘッダー部分 */}
-      <header className="flex items-center gap-3 border-b border-zinc-300 bg-[#dfdfdf] px-4 py-3">
+      <header className="chat-select-header">
         {/* 戻るボタン */}
         <button
-          onClick={() => {
-            console.log('back click')
-            navigate('/') // ホームページに戻る
-          }}
-          className="rounded-md p-1 text-zinc-700 transition hover:bg-zinc-200"
+          onClick={() => navigate('/')} // ホームページに戻る
+          className="back-button"
         >
-          <ArrowLeft className="h-7 w-7" />
+          <ArrowLeft size={24} />
         </button>
         {/* ページタイトルアイコン */}
-        <MessageCircle className="h-9 w-9 fill-rose-200 text-rose-200" />
+        <MessageCircle size={28} className="title-icon" />
         {/* ページタイトル */}
-        <h1 className="text-3xl font-bold text-zinc-900 sm:text-[44px]">チャットで相談</h1>
+        <h1>チャットで相談</h1>
       </header>
 
       {/* メインコンテンツ部分 */}
-      <div className="min-h-[620px] px-7 py-12">
-        <div className="space-y-10">
-          {/* chatTopics配列から各トピックをボタンとして描画 */}
-          {chatTopics.map((topic) => (
+      <main className="chat-select-main">
+        {/* 曜日選択タブ */}
+        <div className="day-tabs">
+          {dayOrder.map((day) => (
             <button
-              key={topic.id}
-              onClick={() => {
-                console.log('chat category:', topic.label)
-                navigate(`/chat/${topic.id}`) // 選択したトピックのチャットページに遷移
-              }}
-              className="block w-full rounded-full border border-[#ff5d5d] bg-[#f5f5f5] px-4 py-3 text-4xl font-semibold text-zinc-900 transition hover:bg-rose-50 sm:text-[56px]"
+              key={day}
+              className={`day-tab ${activeTab === day ? 'active' : ''}`}
+              onClick={() => setActiveTab(day)}
             >
-              {topic.label}
+              {dayMap[day]}
             </button>
           ))}
         </div>
-      </div>
-    </>
-  )
+
+        {/* トピックリスト */}
+        <div className="topic-list">
+          {/* 選択された曜日の授業リスト */}
+          <div className="topic-group">
+            <h2 className="topic-group-title">{dayMap[activeTab]}曜日の授業</h2>
+            <div className="topic-buttons">
+              {(weeklySchedule[activeTab as keyof typeof weeklySchedule] || []).map((lecture) => (
+                <button key={lecture.id} onClick={() => navigate(`/chat/${lecture.id}`)} className="topic-button">
+                  {lecture.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* その他のトピック */}
+          <div className="topic-group">
+            <h2 className="topic-group-title">その他</h2>
+            <div className="topic-buttons">
+              {otherTopics.map((topic) => (
+                <button key={topic.id} onClick={() => navigate(`/chat/${topic.id}`)} className="topic-button">
+                  {topic.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
 }

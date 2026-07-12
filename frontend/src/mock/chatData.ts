@@ -1,51 +1,50 @@
-export type ChatTopic = {
-  id: string
-  label: string
-}
-
 export type ChatMessage = {
   id: number
   role: 'user' | 'assistant'
   text: string
 }
 
-export type ChatResource = {
-  id: number
-  label: string
-}
 
-export const chatTopics: ChatTopic[] = [
-  { id: 'risk', label: '喝を入れて' },
-  { id: 'lecture', label: '授業について' },
-  { id: 'registration', label: '履修登録について' },
-]
+// 曜日ごとの授業リスト
+export const weeklySchedule = {
+  monday: [
+    { id: 'class-mon-1', name: '線形代数' },
+    { id: 'class-mon-2', name: 'プログラミング基礎' },
+  ],
+  tuesday: [
+    { id: 'class-tue-1', name: '情報理論' },
+  ],
+  wednesday: [
+    { id: 'class-wed-1', name: '微分積分学' },
+    { id: 'class-wed-2', name: 'データ構造とアルゴリズム' },
+  ],
+  thursday: [
+    { id: 'class-thu-1', name: '統計学' },
+  ],
+  friday: [
+    { id: 'class-fri-1', name: '人工知能' },
+  ],
+};
 
-export const mockMessagesByTopic: Record<string, ChatMessage[]> = {
-  risk: [
-    {
-      id: 1,
-      role: 'assistant',
-      text: '出席と課題の状況を教えて。危険度を確認して、今やることを1つ決めよう！',
-    },
-  ],
-  lecture: [
-    { id: 1, role: 'assistant', text: 'テキストテキストテキスト' },
-    { id: 2, role: 'user', text: 'テキストテキストテキストテキ' },
-    {
-      id: 3,
-      role: 'assistant',
-      text: 'テキストテキストテキストテキストテキストテキストテキストテキストテキストテキストテキストテキスト',
-    },
-  ],
-  registration: [
-    { id: 1, role: 'assistant', text: '履修登録の相談ですね。希望の曜日や時間帯を教えてください。' },
-    { id: 2, role: 'user', text: '火曜3限は空けたいです。' },
-    { id: 3, role: 'assistant', text: '了解です。必修との重複がない候補を確認します。' },
-  ],
-}
+// その他の相談トピック
+type Topic = {
+  id: string;
+  name: string;
+};
 
-export const mockResourcesByTopic: Record<string, ChatResource[]> = {
-  risk: [],
-  lecture: [{ id: 1, label: '講義資料' }],
-  registration: [{ id: 1, label: '履修登録ガイド' }],
-}
+export const otherTopics: Topic[] = [
+  { id: 'registration', name: '履修登録について相談' },
+  { id: 'motivation', name: '喝を入れて' },
+];
+
+// 曜日を日本語と英語で対応させるための定義
+export const dayMap: { [key: string]: string } = {
+  monday: '月',
+  tuesday: '火',
+  wednesday: '水',
+  thursday: '木',
+  friday: '金',
+};
+
+// 曜日の順序を定義
+export const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];

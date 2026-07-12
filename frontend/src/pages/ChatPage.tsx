@@ -1,8 +1,8 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ChevronDown, MessageCircle, Plus, Send, Sparkles } from 'lucide-react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { AssignmentStatus, calculateRisk } from '../lib/risk'
-import { ChatMessage } from '../mock/chatData'
+import { ArrowLeft, ChevronDown, Plus, Send, Sparkles } from 'lucide-react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { AssignmentStatus, calculateRisk } from '../lib/risk';
+import { ChatMessage, otherTopics, weeklySchedule } from '../mock/chatData'
 
 const avatarUrl = 'https://images.unsplash.com/photo-1617127365659-c47fa864d8bc?auto=format&fit=crop&w=240&q=80'
 const suggestions = ['この授業って難しい？', 'あと何回休める？', '課題は何から始める？']
@@ -10,8 +10,33 @@ const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 type LocationState = { initialMessage?: string }
 
+/**
+ * 選択されたトピックの名称をIDから検索します。
+ * @param topicId - URLから取得したトピックID
+ * @returns トピックの名称。見つからない場合は 'チャット' を返します。
+ */
+function findTopicName(topicId?: string): string {
+  if (!topicId) return 'チャット'
+
+  // 曜日ごとの授業リストから検索
+  for (const day in weeklySchedule) {
+    const lecture = weeklySchedule[day as keyof typeof weeklySchedule].find(
+      (l) => l.id === topicId,
+    )
+    if (lecture) return lecture.name
+  }
+
+  // その他のトピックから検索
+  const other = otherTopics.find((t: { id: string; name: string }) => t.id === topicId)
+  if (other) return other.name
+
+  return 'チャット'
+}
+
 export function ChatPage() {
   const navigate = useNavigate()
+  // URLのパラメータから :topicId を取得
+  const { topicId } = useParams<{ topicId: string }>()
   const location = useLocation()
   const initialMessage = (location.state as LocationState | null)?.initialMessage?.trim() ?? ''
   const [input, setInput] = useState('')
@@ -26,6 +51,9 @@ export function ChatPage() {
   const [assignmentStatus, setAssignmentStatus] = useState<AssignmentStatus>('not_started')
   const didHandleInitial = useRef(false)
   const bottomRef = useRef<HTMLDivElement | null>(null)
+
+  // topicIdから現在のチャットのタイトルを取得
+  const topicName = findTopicName(topicId)
 
   const createReply = useCallback((message: string) => {
     if (/休|欠席|出席/.test(message)) {
@@ -103,9 +131,10 @@ export function ChatPage() {
   return (
     <div className="flex h-[720px] flex-col bg-white">
       <header className="flex items-center gap-3 border-b border-zinc-200 bg-white px-4 py-3">
-        <button onClick={() => navigate('/')} className="p-1 text-zinc-700 hover:text-black" aria-label="ホームへ戻る"><ArrowLeft className="h-6 w-6" /></button>
-        <MessageCircle className="h-7 w-7 fill-rose-200 text-rose-200" />
-        <div className="flex-1"><h1 className="text-xl font-medium text-zinc-900">ぽけ先輩に相談</h1></div>
+        {/* 戻るボタン: -1 を指定すると、一つ前のページ(チャット選択画面)に戻ります */}
+        <button onClick={() => navigate(-1)} className="p-1 text-zinc-700 hover:text-black" aria-label="戻る"><ArrowLeft className="h-6 w-6" /></button>
+        {/* トピック名を表示するタイトル */}
+        <div className="flex-1"><h1 className="text-xl font-medium text-zinc-900">{topicName}</h1></div>
         <Sparkles className="h-5 w-5 text-[#ff5d5d]" />
       </header>
 
@@ -145,4 +174,3 @@ export function ChatPage() {
     </div>
   )
 }
-

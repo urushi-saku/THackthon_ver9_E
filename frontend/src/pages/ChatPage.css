@@ -1,0 +1,87 @@
+/* ページ全体のコンテナ */
+.chat-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #e6e6e6; /* 明るいグレーの背景 */
+}
+
+/* ヘッダー */
+.chat-header {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #dcdcdc;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.chat-header h2 {
+  margin: 0;
+  font-size: 1.125rem; /* 少し小さめのタイトル */
+  font-weight: 600;
+  text-align: center;
+  flex-grow: 1;
+  color: #333;
+}
+
+.chat-header .back-button {
+  position: absolute;
+  left: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+}
+
+.chat-header .back-button:hover {
+  background-color: #e0e0e0;
+}
+
+/* 会話履歴が表示されるメイン領域 */
+.chat-conversation {
+  flex-grow: 1;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+/* メッセージ入力フォーム */
+.chat-input-form {
+  display: flex;
+  padding: 0.75rem;
+  background-color: #f5f5f5;
+  border-top: 1px solid #dcdcdc;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.chat-input-form input {
+  flex-grow: 1;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+}
+
+.chat-input-form button {
+  border: none;
+  background-color: #ff6b8b; /* ホーム画面と合わせたピンク色 */
+  color: white;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.chat-input-form button:hover {
+  background-color: #ff4772;
+}

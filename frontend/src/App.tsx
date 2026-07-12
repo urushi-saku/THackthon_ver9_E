@@ -3,7 +3,7 @@ import { Component, ReactNode } from 'react'
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 // 各ページのコンポーネントをインポート
 import { ChatPage } from './pages/ChatPage'
-import { HomePage } from './pages/HomePage'
+import { ChatSelectPage } from './pages/ChatSelectPage'
 import { SummaryPage } from './pages/SummaryPage'
 import { Homepage } from './pages/HomePage'
 
@@ -55,15 +55,14 @@ function App() {
           <div className="mx-auto w-full max-w-sm sm:max-w-md overflow-hidden border-4 border-[#1b9af7] bg-[#efefef] shadow-sm">
             {/* Routes: URLに応じて表示するコンポーネントを切り替えるためのコンテナです。 */}
             <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/chat" element={<ChatPage />} />
-              <Route path="/summary" element={<SummaryPage />} />
               {/* ルートパス ("/") にはHomepageコンポーネントを表示します。 */}
               <Route path="/" element={<Homepage />} />
+              {/* "/summary" パスにはSummaryPageコンポーネントを表示します。 */}
+              <Route path="/summary" element={<SummaryPage />} />
               {/* "/chat/select" パスにはChatSelectPageコンポーネントを表示します。 */}
-              <Route path="/chat/select" element={<Navigate to="/chat" replace />} />
+              <Route path="/chat/select" element={<ChatSelectPage />} />
               {/* "/chat/:topicId" パスにはChatPageコンポーネントを表示します。:topicIdは動的な値です。 */}
-              <Route path="/chat/:topicId" element={<Navigate to="/chat" replace />} />
+              <Route path="/chat/:topicId" element={<ChatPage />} />
               {/* 上記のいずれにも一致しないパスは、ルートパス("/")にリダイレクトします。 */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
