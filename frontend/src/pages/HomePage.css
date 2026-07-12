@@ -1,0 +1,141 @@
+/* 画面全体のコンテナ */
+.home-screen {
+  background-color: white;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ヘッダー部分 */
+.home-header {
+  background-color: #f5f5f5;
+  padding: 1rem;
+  text-align: center;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* ヘッダー内のタイトル(h1) */
+.home-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #ff6b8b;
+}
+
+/* メインコンテンツ領域 */
+.home-main-content {
+  flex-grow: 1; /* 親要素の残りのスペースをすべて埋める */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 1rem;
+  gap: 1.5rem; /* 各要素間のスペース */
+}
+
+/* プロフィールセクション（アバターと名前） */
+.profile-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* 円形アバターの基本スタイル */
+.circle-avatar {
+  border-radius: 50%; /* 要素を円形にする */
+  object-fit: cover; /* 画像のアスペクト比を保ちつつ、要素を完全に覆う */
+}
+
+/* largeサイズの円形アバター */
+.circle-avatar.large {
+  width: 100px;
+  height: 100px;
+}
+
+/* プロフィール名 */
+.profile-name {
+  font-size: 1.125rem; /* medium */
+  font-weight: bold;
+  color: #000000;
+}
+
+/* メッセージの吹き出し */
+.message-bubble {
+  background-color: #f0f0f0;
+  border-radius: 15px;
+  padding: 1rem;
+  width: 100%;
+  max-width: 350px;
+  box-sizing: border-box; /* paddingとborderをwidth/heightに含める */
+}
+
+/* 吹き出し内の各行(p) */
+.message-bubble p {
+  margin: 0;
+  line-height: 1.5;
+  color: #000000;
+  display: flex;
+  align-items: center; /* アイコンとテキストを垂直方向中央に揃える */
+}
+
+/* 「何について相談する？」のテキスト */
+.consult-prompt {
+  font-size: 0.875rem; /* small */
+  color: #000000;
+  text-align: center;
+  margin: 0;
+}
+
+/* アクションメニューのコンテナ */
+.action-menu {
+  display: flex;
+  flex-direction: column; /* デフォルトは縦並び（スマートフォン向け） */
+  gap: 1rem;
+  width: 100%;
+  max-width: 380px;
+}
+
+/* 角丸のカード型ボタン */
+.rounded-card-button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 2px solid #ff6b8b;
+  border-radius: 12px;
+  background-color: white;
+  text-decoration: none; /* リンクの下線を消す */
+  color: #000000;
+  font-weight: 500;
+  transition: background-color 0.2s; /* ホバー時の背景色変化を滑らかにする */
+}
+
+/* ボタンホバー時のスタイル */
+.rounded-card-button:hover {
+  background-color: #fff0f3;
+}
+
+/* ボタン内のアイコン */
+.action-icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* ボタン内のテキスト */
+.action-text {
+  color: #000000;
+}
+
+/* --- レスポンシブデザイン (PC向け) --- */
+/* 画面幅が768px以上の場合に適用 */
+@media (min-width: 768px) {
+  /* アクションメニューを横並びにする */
+  .action-menu {
+    flex-direction: row;
+    justify-content: center;
+    max-width: none; /* 横並びになるため最大幅の制限を解除 */
+  }
+  /* 各ボタンが均等に幅を持つようにする */
+  .rounded-card-button {
+    flex-grow: 1;
+  }
+}
