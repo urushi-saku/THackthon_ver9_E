@@ -45,7 +45,6 @@ cd your-repository-name
 
 ### 3. 環境変数の設定
 
-プロジェクトのルートディレクトリに `.env` ファイルを作成し、以下の内容を参考に設定してください。
 バックエンド用に、プロジェクトのルートディレクトリに `.env` ファイルを作成します。
 
 ```ini
@@ -61,7 +60,6 @@ SUPABASE_ANON_KEY="your-anon-key"
 SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
 
 # Google AI Studioで取得したAPIキー
-# <https://aistudio.google.com/app/apikey>
 # https://aistudio.google.com/app/apikey
 GEMINI_API_KEY="your-gemini-api-key"
 
