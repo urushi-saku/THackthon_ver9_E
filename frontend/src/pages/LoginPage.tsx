@@ -1,45 +1,32 @@
-import { useState, FormEvent } from 'react';
+import { useState } from 'react';
 import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
+  signInWithPopup,
   AuthError,
 } from 'firebase/auth';
-import { auth } from '../firebase';
+import { auth, googleProvider } from '../firebase';
 import './LoginPage.css';
 
 export function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleAuth = async (isSignUp: boolean) => {
+  const handleGoogleLogin = async () => {
     setLoading(true);
     setError('');
     try {
-      if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-      }
-      // ログイン/新規登録成功後はApp.tsx側で自動的にリダイレクトされる
+      await signInWithPopup(auth, googleProvider);
+      // ログイン成功後はApp.tsx側で自動的にリダイレクトされるはず
     } catch (e) {
       const authError = e as AuthError;
       switch (authError.code) {
-        case 'auth/invalid-email':
-          setError('正しいメールアドレス形式で入力してください。');
+        case 'auth/popup-closed-by-user':
+          // ユーザーがポップアップを閉じた場合は何もしない
           break;
-        case 'auth/email-already-in-use':
-          setError('このメールアドレスは既に使用されています。');
-          break;
-        case 'auth/weak-password':
-          setError('パスワードは6文字以上で入力してください。');
-          break;
-        case 'auth/invalid-credential':
-          setError('メールアドレスまたはパスワードが間違っています。');
+        case 'auth/account-exists-with-different-credential':
+          setError('このメールアドレスは、別のログイン方法で既に使用されています。');
           break;
         default:
-          setError('エラーが発生しました。もう一度お試しください。');
+          setError('ログインに失敗しました。もう一度お試しください。');
           console.error(authError);
       }
     } finally {
@@ -47,44 +34,16 @@ export function LoginPage() {
     }
   };
 
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault();
-  };
-
   return (
     <div className="login-page">
       <h1>ぽけ先輩</h1>
-      <form onSubmit={handleSubmit} className="login-form">
-        <div className="input-group">
-          <label htmlFor="email">メールアドレス</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div className="input-group">
-          <label htmlFor="password">パスワード</label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
+      <div className="login-container">
         {error && <p className="error-message">{error}</p>}
-        <div className="button-group">
-          <button onClick={() => handleAuth(false)} disabled={loading} className="login-button">
-            {loading ? '処理中...' : 'ログイン'}
-          </button>
-          <button onClick={() => handleAuth(true)} disabled={loading} className="signup-button">
-            {loading ? '処理中...' : '新規登録'}
-          </button>
-        </div>
-      </form>
+        <button onClick={handleGoogleLogin} disabled={loading} className="google-login-button">
+          {loading ? '処理中...' : 'Googleアカウントでログイン'}
+        </button>
+        <p className="login-note">大学のGoogleアカウントでログインしてください。</p>
+      </div>
     </div>
   );
 }
