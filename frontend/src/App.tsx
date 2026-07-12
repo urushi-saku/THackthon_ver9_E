@@ -4,9 +4,9 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 // 各ページのコンポーネントをインポート
 import { ChatPage } from './pages/ChatPage'
 import { ChatSelectPage } from './pages/ChatSelectPage'
+import { Homepage } from './pages/HomePage'
 import { SummaryPage } from './pages/SummaryPage'
 import { SummaryResultPage } from './pages/SummaryResultPage'
-import { Homepage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { AuthProvider, useAuth } from './AuthContext'
 
