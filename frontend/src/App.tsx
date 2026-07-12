@@ -5,7 +5,7 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { ChatPage } from './pages/ChatPage'
 import { ChatSelectPage } from './pages/ChatSelectPage'
 import { SummaryPage } from './pages/SummaryPage'
-import { Homepage } from './pages/HomePage'
+import { SummaryResultPage } from './pages/SummaryResultPage'
 
 // ErrorBoundaryコンポーネントのstateの型定義
 type ErrorBoundaryState = {
@@ -55,8 +55,7 @@ function App() {
           <div className="mx-auto w-full max-w-sm sm:max-w-md overflow-hidden border-4 border-[#1b9af7] bg-[#efefef] shadow-sm">
             {/* Routes: URLに応じて表示するコンポーネントを切り替えるためのコンテナです。 */}
             <Routes>
-              {/* ルートパス ("/") にはHomepageコンポーネントを表示します。 */}
-              <Route path="/" element={<Homepage />} />
+              <Route path="/summary/result" element={<SummaryResultPage />} />
               {/* "/summary" パスにはSummaryPageコンポーネントを表示します。 */}
               <Route path="/summary" element={<SummaryPage />} />
               {/* "/chat/select" パスにはChatSelectPageコンポーネントを表示します。 */}

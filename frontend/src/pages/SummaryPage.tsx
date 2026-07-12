@@ -101,6 +101,11 @@ export function SummaryPage() {
     setView('select'); // キャンセルしたら選択画面に戻る
   };
 
+  const handleFileSelect = (file: File | undefined) => {
+    if (!file) return
+    navigate('/summary/result', { state: { file } })
+  }
+
   return (
     <div className="summary-page">
       {/* ヘッダー部分 */}
