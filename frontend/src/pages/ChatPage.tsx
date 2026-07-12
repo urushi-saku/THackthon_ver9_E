@@ -53,9 +53,22 @@ export function ChatPage() {
   const [isThinking, setIsThinking] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fileError, setFileError] = useState('')
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 1, role: 'assistant', text: 'こんにちは、ぽけ先輩です。授業、課題、試験のこと、なんでも話してね。' },
-  ])
+  // topicIdごとに会話履歴をlocalStorageから読み込むように変更
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    let savedMessages: string | null = null;
+    try {
+      savedMessages = localStorage.getItem(`chatHistory_${topicId}`);
+    } catch (error) {
+      console.error('Failed to access localStorage', error);
+    }
+
+    if (savedMessages) {
+      return JSON.parse(savedMessages) as ChatMessage[];
+    }
+
+    // 履歴がない場合は初期メッセージをセット
+    return [{ id: 1, role: 'assistant', text: 'こんにちは、ぽけ先輩です。授業、課題、試験のこと、なんでも話してね。' }];
+  });
   const [showStatus, setShowStatus] = useState(false)
   const [totalClasses, setTotalClasses] = useState(15)
   const [absenceAllowance, setAbsenceAllowance] = useState(5)
@@ -161,6 +174,12 @@ export function ChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // messagesが更新されるたびに、localStorageに保存する
+  useEffect(() => {
+    if (!topicId) return;
+    localStorage.setItem(`chatHistory_${topicId}`, JSON.stringify(messages));
+  }, [messages, topicId]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
