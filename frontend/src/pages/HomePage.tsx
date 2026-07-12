@@ -1,6 +1,8 @@
 // ページ遷移のためのLinkコンポーネントと、アイコン表示のためのlucide-reactライブラリをインポート
 import { Link } from 'react-router-dom';
-import { MessageSquare, Book, Gem, Speaker } from 'lucide-react';
+import { MessageSquare, Book, Gem, Speaker, LogOut } from 'lucide-react';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 // このコンポーネント専用のCSSファイルをインポート
 import './HomePage.css';
 
@@ -8,6 +10,14 @@ import './HomePage.css';
  * Homepage: アプリケーションのメイン画面（トップページ）を表示するコンポーネント。
  */
 const Homepage = () => {
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
+  };
+
   return (
     // home-screen: 画面全体のコンテナ
     <div className="home-screen">
@@ -66,6 +76,11 @@ const Homepage = () => {
             <span className="action-text">おすすめ</span>
           </Link>
         </nav>
+
+        <button onClick={handleLogout} className="logout-button">
+          <LogOut size={16} />
+          <span>ログアウト</span>
+        </button>
       </main>
     </div>
   );
