@@ -25,8 +25,9 @@
 | **フロントエンド** | React, Vite, TypeScript, Tailwind CSS, react-router-dom           |
 | **バックエンド**   | Python, FastAPI, Uvicorn                                          |
 | **AI**           | Google Gemini API                                                 |
-| **データベース**   | Supabase (PostgreSQL) Firebase                                   |
-| **デプロイ**     | Render　Vercel                                                     |
+| **データベース**   | Supabase (PostgreSQL)                                             |
+| **認証**         | Firebase Authentication                                           |
+| **デプロイ**     | Vercel (Frontend), Render (Backend)                               |
 
 ## 🔧 環境構築
 
@@ -38,7 +39,7 @@
 ### 2. リポジトリのクローン
 
 ```bash
-git clone <https://github.com/your-username/your-repository-name.git>
+git clone https://github.com/your-username/your-repository-name.git
 cd your-repository-name
 ```
 
@@ -139,4 +140,3 @@ npm run dev
 ```
 
 これで、 `http://localhost:5173` でアプリケーションにアクセスできます。
-
