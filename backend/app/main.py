@@ -182,7 +182,7 @@ def config_status() -> dict[str, str | bool | list[str]]:
 
 
 @app.post("/chat", response_model=ChatMessageResponse)
-def create_chat_reply(request: ChatMessageRequest) -> ChatMessageResponse:
+def create_chat_reply(request: ChatMessageRequest, db: Annotated[Client, Depends(get_supabase)]) -> ChatMessageResponse:
     """ぽけ先輩のシステムプロンプトを使って相談へ回答する。"""
 
     if gemini_client is None:
@@ -192,7 +192,7 @@ def create_chat_reply(request: ChatMessageRequest) -> ChatMessageResponse:
         )
 
     try:
-        reply = generate_gemini_reply(
+        raw_reply = generate_gemini_reply(
             client=gemini_client,
             model=GEMINI_MODEL,
             user_message=request.message,
@@ -204,10 +204,34 @@ def create_chat_reply(request: ChatMessageRequest) -> ChatMessageResponse:
         logger.exception("Gemini chat generation failed")
         raise HTTPException(status_code=502, detail="Failed to generate chat reply") from exc
 
+    try:
+        # GeminiからのJSON応答をパースする
+        response_data = json.loads(raw_reply)
+        reply_text = response_data.get("reply", "")
+        is_katsu = response_data.get("is_katsu", False)
+        extracted_review_data = response_data.get("extracted_review")
+
+        # 口コミが抽出されていたら、裏でDBに保存する
+        if extracted_review_data:
+            try:
+                db.table("reviews").insert({
+                    "course_name": extracted_review_data.get("course_name"),
+                    "content": extracted_review_data.get("review_content"),
+                    "category": extracted_review_data.get("category"),
+                    "user_id": request.user_id,  # どのユーザーの発言か記録
+                }).execute()
+            except Exception:
+                # DB保存失敗はログに残すが、チャットの応答は続ける
+                logger.exception("Failed to save extracted review to Supabase")
+
+    except (json.JSONDecodeError, AttributeError):
+        # JSONパース失敗時は、そのままテキストとして返す
+        reply_text = raw_reply
+        is_katsu = False
+        extracted_review_data = None
+
     return ChatMessageResponse(
-        user_id=request.user_id,
-        message=request.message,
-        reply=reply,
+        user_id=request.user_id, message=request.message, reply=reply_text, is_katsu=is_katsu, extracted_review=extracted_review_data
     )
 
 
