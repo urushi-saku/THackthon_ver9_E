@@ -31,7 +31,7 @@ app = FastAPI(title="THackthon Team E API")
 # 本番環境では FRONTEND_ORIGINS にデプロイ先のURLを指定する。
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=FRONTEND_ORIGINS,
+    allow_origins=["*"],  # ハッカソン中は一時的にすべて許可
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -7,6 +7,7 @@ const avatarUrl =
   'https://images.unsplash.com/photo-1617127365659-c47fa864d8bc?auto=format&fit=crop&w=240&q=80'
 
 export function ChatPage() {
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const { topicId } = useParams()
   const [input, setInput] = useState('')
@@ -83,7 +84,7 @@ export function ChatPage() {
         <h1 className="text-[34px] font-medium text-zinc-900">{topic.label}</h1>
       </header>
 
-      <div className="flex-1 space-y-6 overflow-y-auto px-4 py-6">
+      <div ref={messagesEndRef} className="flex-1 space-y-6 overflow-y-auto px-4 py-6">
         {messages.map((message) =>
           message.role === 'assistant' ? (
             <div key={message.id} className="flex items-start gap-2">
@@ -131,3 +132,5 @@ export function ChatPage() {
     </div>
   )
 }
+
+

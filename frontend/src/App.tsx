@@ -1,8 +1,7 @@
 import { Component, ReactNode } from 'react'
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { ChatPage } from './pages/ChatPage'
-import { ChatSelectPage } from './pages/ChatSelectPage'
-import { HomePage } from './pages/HomePage'
+import { ChatSelectPage } from './pages/ChatSelectPage' // Assuming this file exists
 
 type ErrorBoundaryState = {
   hasError: boolean
@@ -39,7 +38,6 @@ function App() {
         <div className="min-h-screen bg-[#e6e6e6] p-2 sm:p-6">
           <div className="mx-auto w-full max-w-[420px] overflow-hidden border-4 border-[#1b9af7] bg-[#efefef] shadow-sm">
             <Routes>
-              <Route path="/" element={<HomePage />} />
               <Route path="/chat/select" element={<ChatSelectPage />} />
               <Route path="/chat/:topicId" element={<ChatPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
