@@ -42,7 +42,8 @@
 /* 円形アバターの基本スタイル */
 .circle-avatar {
   border-radius: 50%; /* 要素を円形にする */
-  object-fit: cover; /* 画像のアスペクト比を保ちつつ、要素を完全に覆う */
+  object-fit: contain;
+  background-color: #ffffff;
 }
 
 /* largeサイズの円形アバター */

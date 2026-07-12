@@ -6,7 +6,7 @@ import { AssignmentStatus, calculateRisk, RiskResult } from '../lib/risk';
 import { ChatMessage, otherTopics, weeklySchedule } from '../mock/chatData'
 import './ChatPage.css'
 
-const avatarUrl = 'https://images.unsplash.com/photo-1617127365659-c47fa864d8bc?auto=format&fit=crop&w=240&q=80'
+const avatarUrl = '/poke-senpai.jpg'
 const suggestions = ['この授業って難しい？', 'あと何回休める？', '課題は何から始める？', '喝を入れて！']
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -333,7 +333,7 @@ export function ChatPage() {
       <div className="flex-1 space-y-5 overflow-y-auto px-4 py-7">
         {messages.map((message) => message.role === 'assistant' ? (
           <div key={message.id} className="flex items-start gap-2">
-            <img src={avatarUrl} alt="" className="mt-1 h-9 w-9 rounded-full object-cover" />
+            <img src={avatarUrl} alt="ぽけ先輩" className="mt-1 h-9 w-9 rounded-full bg-white object-contain" />
             <div className="max-w-[78%] rounded-2xl rounded-tl-sm border border-zinc-400 bg-white px-4 py-3 text-sm leading-relaxed text-zinc-800">
               <ReactMarkdown
                 components={{
@@ -361,7 +361,7 @@ export function ChatPage() {
         ))}
         {isThinking && (
           <div className="flex items-start gap-2" role="status" aria-live="polite">
-            <img src={avatarUrl} alt="" className="mt-1 h-9 w-9 rounded-full object-cover" />
+            <img src={avatarUrl} alt="ぽけ先輩" className="mt-1 h-9 w-9 rounded-full bg-white object-contain" />
             <div className="flex items-center gap-2 rounded-2xl rounded-tl-sm border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-500">
               <span>ぽけ先輩が考え中</span>
               <span className="flex gap-1" aria-hidden="true">

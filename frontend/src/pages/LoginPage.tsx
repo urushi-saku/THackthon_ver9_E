@@ -3,10 +3,13 @@ import {
   signInWithPopup,
   AuthError,
 } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
 import { auth, googleProvider } from '../firebase';
+import { profileStorageKey } from '../lib/profile';
 import './LoginPage.css';
 
 export function LoginPage() {
+  const navigate = useNavigate();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -14,8 +17,9 @@ export function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      await signInWithPopup(auth, googleProvider);
-      // ログイン成功後はApp.tsx側で自動的にリダイレクトされるはず
+      const result = await signInWithPopup(auth, googleProvider);
+      const hasProfile = Boolean(localStorage.getItem(profileStorageKey(result.user.uid)));
+      navigate(hasProfile ? '/' : '/profile', { replace: true });
     } catch (e) {
       const authError = e as AuthError;
       switch (authError.code) {

@@ -8,6 +8,7 @@ import { Homepage } from './pages/HomePage'
 import { SummaryPage } from './pages/SummaryPage'
 import { SummaryResultPage } from './pages/SummaryResultPage'
 import { LoginPage } from './pages/LoginPage'
+import { ProfilePage } from './pages/ProfilePage'
 import { AuthProvider, useAuth } from './AuthContext'
 
 // ErrorBoundaryコンポーネントのstateの型定義
@@ -64,6 +65,7 @@ function AppRoutes() {
           <Route path="/summary" element={<SummaryPage />} />
           <Route path="/chat/select" element={<ChatSelectPage />} />
           <Route path="/chat/:topicId" element={<ChatPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           {/* どのルートにも一致しない場合はホームページへ */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </>

@@ -1,6 +1,7 @@
 // ページ遷移のためのLinkコンポーネントと、アイコン表示のためのlucide-reactライブラリをインポート
-import { Link } from 'react-router-dom';
-import { MessageSquare, Book, Gem, Speaker, LogOut } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { MessageSquare, Book, Gem, Speaker, LogOut, UserRound } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 // このコンポーネント専用のCSSファイルをインポート
@@ -10,11 +11,18 @@ import './HomePage.css';
  * Homepage: アプリケーションのメイン画面（トップページ）を表示するコンポーネント。
  */
 const Homepage = () => {
+  const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     try {
       await signOut(auth);
+      navigate('/login', { replace: true });
     } catch (error) {
       console.error("Logout failed", error);
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -24,6 +32,9 @@ const Homepage = () => {
       {/* home-header: 画面上部のヘッダー */}
       <header className="home-header">
         <h1 style={{ color: '#FF6B8B' }}>ぽけ先輩</h1>
+        <Link to="/profile" aria-label="プロフィール設定" title="プロフィール設定" style={{ color: '#FF6B8B', display: 'flex' }}>
+          <UserRound size={24} />
+        </Link>
       </header>
 
       {/* home-main-content: ヘッダー以下のメインコンテンツ領域 */}
@@ -31,7 +42,7 @@ const Homepage = () => {
         {/* profile-section: アバターと名前を表示するプロフィールセクション */}
         <section className="profile-section">
           <img
-            src="/image_0.png"
+            src="/poke-senpai.jpg"
             alt="ぽけ先輩アバター"
             // circle-avatarとlargeクラスで円形のアバター画像とサイズを指定
             className="circle-avatar large"
@@ -77,9 +88,9 @@ const Homepage = () => {
           </Link>
         </nav>
 
-        <button onClick={handleLogout} className="logout-button">
+        <button onClick={handleLogout} disabled={isLoggingOut} className="logout-button">
           <LogOut size={16} />
-          <span>ログアウト</span>
+          <span>{isLoggingOut ? 'ログアウト中…' : 'ログアウト'}</span>
         </button>
       </main>
     </div>

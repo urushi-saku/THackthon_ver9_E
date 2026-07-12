@@ -18,12 +18,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, user => {
-      setCurrentUser(user);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user)
       setLoading(false);
-    });
+    }, (error) => {
+      console.error('Firebase auth state error:', error)
+      setCurrentUser(null)
+      setLoading(false)
+    })
 
-    return unsubscribe;
+    return unsubscribe
   }, []);
 
   const value = { currentUser, loading };
