@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 from uuid import UUID
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 from pydantic import BaseModel, ConfigDict, Field
