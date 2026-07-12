@@ -1,6 +1,9 @@
+import logging
 import os
 from datetime import datetime
+from pathlib import Path
 from typing import Annotated
+from urllib.parse import urlparse
 from uuid import UUID
 
 from dotenv import load_dotenv
@@ -10,14 +13,51 @@ from google import genai
 from pydantic import BaseModel, ConfigDict, Field
 from supabase import Client, create_client
 
+logger = logging.getLogger(__name__)
+
 # リポジトリ直下の .env から、外部サービスの接続情報を読み込む。
-load_dotenv()
+BASE_DIR = Path(__file__).resolve().parents[2]
+load_dotenv(BASE_DIR / ".env")
+
+
+def _looks_like_placeholder(value: str | None) -> bool:
+    if not value:
+        return True
+
+    cleaned = value.strip().lower()
+    if not cleaned:
+        return True
+
+    placeholders = {
+        "supabaseのproject url",
+        "supabaseのanon key",
+        "your-project-url",
+        "your-anon-key",
+        "your_supabase_url",
+        "your_supabase_anon_key",
+        "changeme",
+        "replace-me",
+    }
+    return cleaned in placeholders or cleaned.startswith("supabaseの") or "your-project" in cleaned or "your-anon" in cleaned
+
+
+def _is_valid_supabase_url(value: str | None) -> bool:
+    if not value or _looks_like_placeholder(value):
+        return False
+
+    try:
+        parsed = urlparse(value)
+    except Exception:
+        return False
+
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
 
 # 環境変数は起動時に一度だけ取得する。
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
-SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+SUPABASE_URL = (os.getenv("SUPABASE_URL") or "").strip()
+SUPABASE_ANON_KEY = (os.getenv("SUPABASE_ANON_KEY") or "").strip()
+SUPABASE_SERVICE_ROLE_KEY = (os.getenv("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
+GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
 FRONTEND_ORIGINS = [
     origin.strip()
@@ -40,12 +80,22 @@ app.add_middleware(
 # service_roleキーはRLSを回避できるため、バックエンド内だけで使用する。
 # 未設定の場合は、開発用としてanonキーへフォールバックする。
 supabase: Client | None = None
-supabase_key = SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY
-if SUPABASE_URL and supabase_key:
-    supabase = create_client(SUPABASE_URL, supabase_key)
+supabase_key = (SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY).strip()
+if _is_valid_supabase_url(SUPABASE_URL) and supabase_key and not _looks_like_placeholder(supabase_key):
+    try:
+        supabase = create_client(SUPABASE_URL, supabase_key)
+    except Exception as exc:
+        logger.warning("Failed to initialize Supabase client: %s", exc)
+        supabase = None
+else:
+    logger.info("Supabase client is disabled because configuration is missing or invalid")
 
 # Gemini も API キーがある場合のみクライアントを作る。
-gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+gemini_client = (
+    genai.Client(api_key=GEMINI_API_KEY)
+    if GEMINI_API_KEY and not _looks_like_placeholder(GEMINI_API_KEY)
+    else None
+)
 
 
 class UserCreate(BaseModel):
