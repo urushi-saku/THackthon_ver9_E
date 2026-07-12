@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Plus } from 'lucide-react'
+import { ArrowLeft, Megaphone, Plus } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { AssignmentStatus, calculateRisk, RiskResult } from '../lib/risk'
 import { ChatMessage, chatTopics, mockMessagesByTopic, mockResourcesByTopic } from '../mock/chatData'
 
 const avatarUrl =
@@ -11,6 +12,12 @@ export function ChatPage() {
   const navigate = useNavigate()
   const { topicId } = useParams()
   const [input, setInput] = useState('')
+  const [totalClasses, setTotalClasses] = useState(15)
+  const [attendanceRate, setAttendanceRate] = useState(67)
+  const [absentClasses, setAbsentClasses] = useState(2)
+  const [deadline, setDeadline] = useState('')
+  const [assignmentStatus, setAssignmentStatus] = useState<AssignmentStatus>('not_started')
+  const [riskResult, setRiskResult] = useState<RiskResult | null>(null)
   const replyTimerRef = useRef<number | null>(null)
 
   const topic = useMemo(() => chatTopics.find((item) => item.id === topicId), [topicId])
@@ -69,6 +76,22 @@ export function ChatPage() {
     }, 450)
   }
 
+  const handleRiskCheck = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const result = calculateRisk({
+      totalClasses,
+      requiredAttendanceRate: attendanceRate / 100,
+      absentClasses,
+      deadline: deadline ? new Date(deadline) : undefined,
+      assignmentStatus,
+    })
+    setRiskResult(result)
+    setMessages((prev) => [
+      ...prev,
+      { id: Date.now(), role: 'assistant', text: result.message },
+    ])
+  }
+
   return (
     <div className="flex h-[720px] flex-col bg-[#efefef]">
       <header className="flex items-center gap-3 border-b border-zinc-300 bg-[#f3f3f3] px-4 py-4">
@@ -84,7 +107,50 @@ export function ChatPage() {
         <h1 className="text-[34px] font-medium text-zinc-900">{topic.label}</h1>
       </header>
 
-      <div ref={messagesEndRef} className="flex-1 space-y-6 overflow-y-auto px-4 py-6">
+      <div className="flex-1 space-y-6 overflow-y-auto px-4 py-6">
+        {topic.id === 'risk' && (
+          <form onSubmit={handleRiskCheck} className="rounded-2xl border border-rose-300 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center gap-2 text-lg font-bold text-zinc-800">
+              <Megaphone className="h-5 w-5 text-[#ff5d5d]" />
+              単位リスクをチェック
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="text-sm font-medium text-zinc-700">
+                授業回数
+                <input type="number" min="1" value={totalClasses} onChange={(event) => setTotalClasses(Number(event.target.value))} className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2" />
+              </label>
+              <label className="text-sm font-medium text-zinc-700">
+                必要出席率（%）
+                <input type="number" min="0" max="100" value={attendanceRate} onChange={(event) => setAttendanceRate(Number(event.target.value))} className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2" />
+              </label>
+              <label className="text-sm font-medium text-zinc-700">
+                現在の欠席回数
+                <input type="number" min="0" value={absentClasses} onChange={(event) => setAbsentClasses(Number(event.target.value))} className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2" />
+              </label>
+              <label className="text-sm font-medium text-zinc-700">
+                課題の状況
+                <select value={assignmentStatus} onChange={(event) => setAssignmentStatus(event.target.value as AssignmentStatus)} className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-2 py-2">
+                  <option value="not_started">未着手</option>
+                  <option value="in_progress">進行中</option>
+                  <option value="submitted">提出済み</option>
+                </select>
+              </label>
+            </div>
+            <label className="mt-3 block text-sm font-medium text-zinc-700">
+              課題の締切（任意）
+              <input type="datetime-local" value={deadline} onChange={(event) => setDeadline(event.target.value)} className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2" />
+            </label>
+            <button type="submit" className="mt-4 w-full rounded-full bg-[#ff5d5d] px-4 py-2.5 font-bold text-white transition hover:bg-[#ed4949]">
+              ぽけ先輩に判定してもらう
+            </button>
+            {riskResult && (
+              <div className={`mt-3 rounded-xl px-3 py-2 text-sm font-semibold ${riskResult.level >= 2 ? 'bg-rose-100 text-rose-800' : riskResult.level === 1 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                危険度 {riskResult.level}：{riskResult.label}<br />
+                今やること：{riskResult.action}
+              </div>
+            )}
+          </form>
+        )}
         {messages.map((message) =>
           message.role === 'assistant' ? (
             <div key={message.id} className="flex items-start gap-2">
