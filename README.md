@@ -25,7 +25,7 @@
 | **フロントエンド** | React, Vite, TypeScript, Tailwind CSS, react-router-dom           |
 | **バックエンド**   | Python, FastAPI, Uvicorn                                          |
 | **AI**           | Google Gemini API                                                 |
-| **データベース**   | Supabase (PostgreSQL)                                             |
+| **データベース**   | Supabase (PostgreSQL) Firebase                                   |
 | **デプロイ**     | Render　Vercel                                                     |
 
 ## 🔧 環境構築
