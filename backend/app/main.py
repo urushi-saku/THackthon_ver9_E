@@ -161,6 +161,31 @@ def get_supabase() -> Client:
     return supabase
 
 
+def parse_gemini_chat_response(raw_reply: str) -> tuple[str, bool, dict | None]:
+    """Geminiの構造化JSONから、表示文と内部データを安全に取り出す。"""
+
+    cleaned = raw_reply.strip()
+    if cleaned.startswith("```"):
+        lines = cleaned.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        cleaned = "\n".join(lines).strip()
+
+    try:
+        response_data = json.loads(cleaned)
+        if not isinstance(response_data, dict):
+            raise ValueError
+        reply = response_data.get("reply")
+        if not isinstance(reply, str) or not reply.strip():
+            raise ValueError
+        extracted_review = response_data.get("extracted_review")
+        return reply.strip(), bool(response_data.get("is_katsu", False)), extracted_review if isinstance(extracted_review, dict) else None
+    except (json.JSONDecodeError, ValueError, AttributeError):
+        return raw_reply, False, None
+
+
 @app.get("/health")
 def health_check() -> dict[str, str]:
     """サーバーが起動しているか確認するためのヘルスチェック。"""
@@ -204,31 +229,19 @@ def create_chat_reply(request: ChatMessageRequest, db: Annotated[Client, Depends
         logger.exception("Gemini chat generation failed")
         raise HTTPException(status_code=502, detail="Failed to generate chat reply") from exc
 
-    try:
-        # GeminiからのJSON応答をパースする
-        response_data = json.loads(raw_reply)
-        reply_text = response_data.get("reply", "")
-        is_katsu = response_data.get("is_katsu", False)
-        extracted_review_data = response_data.get("extracted_review")
+    reply_text, is_katsu, extracted_review_data = parse_gemini_chat_response(raw_reply)
 
-        # 口コミが抽出されていたら、裏でDBに保存する
-        if extracted_review_data:
-            try:
-                db.table("reviews").insert({
-                    "course_name": extracted_review_data.get("course_name"),
-                    "content": extracted_review_data.get("review_content"),
-                    "category": extracted_review_data.get("category"),
-                    "user_id": request.user_id,  # どのユーザーの発言か記録
-                }).execute()
-            except Exception:
-                # DB保存失敗はログに残すが、チャットの応答は続ける
-                logger.exception("Failed to save extracted review to Supabase")
-
-    except (json.JSONDecodeError, AttributeError):
-        # JSONパース失敗時は、そのままテキストとして返す
-        reply_text = raw_reply
-        is_katsu = False
-        extracted_review_data = None
+    # 口コミが抽出されていたら、裏でDBに保存する
+    if extracted_review_data:
+        try:
+            db.table("reviews").insert({
+                "course_name": extracted_review_data.get("course_name"),
+                "content": extracted_review_data.get("review_content"),
+                "category": extracted_review_data.get("category"),
+                "user_id": request.user_id,
+            }).execute()
+        except Exception:
+            logger.exception("Failed to save extracted review to Supabase")
 
     return ChatMessageResponse(
         user_id=request.user_id, message=request.message, reply=reply_text, is_katsu=is_katsu, extracted_review=extracted_review_data
@@ -271,7 +284,7 @@ async def create_chat_reply_with_file(
         raise HTTPException(status_code=400, detail="Invalid user_settings") from exc
 
     try:
-        reply = generate_gemini_reply_with_file(
+        raw_reply = generate_gemini_reply_with_file(
             client=gemini_client,
             model=GEMINI_MODEL,
             user_message=message,
@@ -285,7 +298,14 @@ async def create_chat_reply_with_file(
         logger.exception("Gemini file chat generation failed")
         raise HTTPException(status_code=502, detail="Failed to analyze attached file") from exc
 
-    return ChatMessageResponse(user_id=user_id, message=message, reply=reply)
+    reply, is_katsu, extracted_review = parse_gemini_chat_response(raw_reply)
+    return ChatMessageResponse(
+        user_id=user_id,
+        message=message,
+        reply=reply,
+        is_katsu=is_katsu,
+        extracted_review=extracted_review,
+    )
 
 
 @app.post("/summary")
