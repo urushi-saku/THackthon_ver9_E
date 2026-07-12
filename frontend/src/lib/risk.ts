@@ -6,6 +6,7 @@ export type CourseRiskInput = {
   totalClasses: number
   requiredAttendanceRate: number
   remainingAbsenceAllowance: number
+  absentClasses: number
   missedAssignments: number
   deadline?: Date
   assignmentStatus: AssignmentStatus
@@ -36,7 +37,12 @@ type RiskFactor = {
 function createCompositeResult(factors: RiskFactor[]): RiskResult {
   const sortedFactors = [...factors].sort((a, b) => b.level - a.level)
   const primary = sortedFactors[0]
-  const level = primary.level
+  const attendanceFactor = factors.find((factor) => factor.title === '出席状況')
+  const totalScore = factors.reduce((sum, factor) => sum + factor.level, 0)
+  // 原則は3項目の合計6以上でレベル3。出席状況レベル3だけは例外的に即レベル3。
+  const level: RiskLevel = totalScore >= 6 || attendanceFactor?.level === 3
+    ? 3
+    : Math.min(2, primary.level) as RiskLevel
   const endings: Record<RiskLevel, string> = {
     0: 'この調子で続けよう！',
     1: '早めに動けば大丈夫！',
@@ -52,14 +58,16 @@ function createCompositeResult(factors: RiskFactor[]): RiskResult {
     label: labels[level],
     reason: sortedFactors.map((factor) => factor.reason).join(' '),
     action: primary.action,
-    message: `### 総合診断：レベル${level}（${labels[level]}）\n\n危険な要素から順に確認するね。\n\n${details}\n\n---\n\n**まずやること：** ${primary.action}。\n\n${endings[level]}`,
+    message: `### 総合診断：レベル${level}（${labels[level]}）\n\n**危険度合計：${totalScore} / 9**\n\n危険な要素から順に確認するね。\n\n${details}\n\n---\n\n**まずやること：** ${primary.action}。\n\n${endings[level]}`,
   }
 }
 
 export function calculateRisk(input: CourseRiskInput, now = new Date()): RiskResult {
   const totalClasses = Math.max(1, Math.floor(input.totalClasses))
   const attendanceRate = Math.min(1, Math.max(0, input.requiredAttendanceRate))
-  const remainingAbsences = Math.min(totalClasses, Math.max(0, Math.floor(input.remainingAbsenceAllowance)))
+  const absenceAllowance = Math.min(totalClasses, Math.max(0, Math.floor(input.remainingAbsenceAllowance)))
+  const absentClasses = Math.max(0, Math.floor(input.absentClasses))
+  const remainingAbsences = absenceAllowance - absentClasses
   const missedAssignments = Math.max(0, Math.floor(input.missedAssignments))
   const factors: RiskFactor[] = []
 
@@ -96,15 +104,13 @@ export function calculateRisk(input: CourseRiskInput, now = new Date()): RiskRes
     factors.push({ title: '課題提出忘れ', level: 0, reason: '提出忘れは0回です。', action: '提出できている状態を維持しよう' })
   }
 
-  const attendanceSummary = `全${totalClasses}回、必要出席率${(attendanceRate * 100).toFixed(1)}%、欠席許容回数はあと${remainingAbsences}回です。`
-  if (remainingAbsences === 0) {
-    factors.push({ title: '出席要件', level: 3, reason: `${attendanceSummary}これ以上欠席できません。`, action: '次回の講義に必ず出席しよう' })
-  } else if (remainingAbsences === 1) {
-    factors.push({ title: '出席要件', level: 2, reason: attendanceSummary, action: '次回以降の講義を優先して出席しよう' })
+  const attendanceSummary = `全${totalClasses}回、必要出席率${(attendanceRate * 100).toFixed(1)}%、欠席許容${absenceAllowance}回に対して現在${absentClasses}回欠席し、残りは${Math.max(0, remainingAbsences)}回です。`
+  if (remainingAbsences <= 1) {
+    factors.push({ title: '出席状況', level: 3, reason: `${attendanceSummary}あと1回以下しか欠席できません。`, action: '次回以降の講義に必ず出席しよう' })
   } else if (remainingAbsences === 2) {
-    factors.push({ title: '出席要件', level: 1, reason: attendanceSummary, action: '今後の講義日を予定に登録しよう' })
+    factors.push({ title: '出席状況', level: 1, reason: attendanceSummary, action: '今後の講義日を予定に登録しよう' })
   } else {
-    factors.push({ title: '出席要件', level: 0, reason: attendanceSummary, action: '今の出席ペースを維持しよう' })
+    factors.push({ title: '出席状況', level: 0, reason: attendanceSummary, action: '今の出席ペースを維持しよう' })
   }
 
   return createCompositeResult(factors)

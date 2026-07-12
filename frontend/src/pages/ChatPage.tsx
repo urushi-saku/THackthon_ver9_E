@@ -2,14 +2,16 @@ import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from
 import { ArrowLeft, ChevronDown, FileText, Plus, Send, Sparkles, X } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { AssignmentStatus, calculateRisk } from '../lib/risk';
+import { AssignmentStatus, calculateRisk, RiskResult } from '../lib/risk';
 import { ChatMessage, otherTopics, weeklySchedule } from '../mock/chatData'
+import './ChatPage.css'
 
 const avatarUrl = 'https://images.unsplash.com/photo-1617127365659-c47fa864d8bc?auto=format&fit=crop&w=240&q=80'
 const suggestions = ['この授業って難しい？', 'あと何回休める？', '課題は何から始める？', '喝を入れて！']
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 type LocationState = { initialMessage?: string }
+type KatsuStage = 'idle' | 'impact' | 'commitment'
 
 /**
  * 選択されたトピックの名称をIDから検索します。
@@ -72,12 +74,17 @@ export function ChatPage() {
   const [showStatus, setShowStatus] = useState(false)
   const [totalClasses, setTotalClasses] = useState(15)
   const [absenceAllowance, setAbsenceAllowance] = useState(5)
+  const [absentClasses, setAbsentClasses] = useState(0)
   const [missedAssignments, setMissedAssignments] = useState(0)
   const [deadlineMonth, setDeadlineMonth] = useState(() => new Date().getMonth() + 1)
   const [deadlineDay, setDeadlineDay] = useState(() => new Date().getDate())
   const [assignmentStatus, setAssignmentStatus] = useState<AssignmentStatus>('not_started')
+  const [katsuStage, setKatsuStage] = useState<KatsuStage>('idle')
+  const [katsuResult, setKatsuResult] = useState<RiskResult | null>(null)
+  const [commitmentChecked, setCommitmentChecked] = useState(false)
   const didHandleInitial = useRef(false)
   const bottomRef = useRef<HTMLDivElement | null>(null)
+  const katsuTimerRef = useRef<number | null>(null)
 
   // topicIdから現在のチャットのタイトルを取得
   const topicName = findTopicName(topicId)
@@ -86,17 +93,29 @@ export function ChatPage() {
     ? Math.max(0, Math.min(100, ((totalClasses - absenceAllowance) / totalClasses) * 100))
     : 0
 
+  const triggerKatsu = useCallback((result: RiskResult) => {
+    setKatsuResult(result)
+    setCommitmentChecked(false)
+    setKatsuStage('impact')
+    navigator.vibrate?.([120, 60, 120, 60, 180])
+    if (katsuTimerRef.current !== null) window.clearTimeout(katsuTimerRef.current)
+    katsuTimerRef.current = window.setTimeout(() => {
+      setKatsuStage('commitment')
+      katsuTimerRef.current = null
+    }, 1400)
+  }, [])
+
   const createReply = useCallback((message: string) => {
     const deadline = deadlineAtEndOfDay(deadlineMonth, deadlineDay)
     if (/喝|サボ|やる気|危険度|落単/.test(message)) {
-      return calculateRisk({ totalClasses, requiredAttendanceRate: requiredAttendanceRate / 100, remainingAbsenceAllowance: absenceAllowance, missedAssignments, assignmentStatus, deadline }).message
+      return calculateRisk({ totalClasses, requiredAttendanceRate: requiredAttendanceRate / 100, remainingAbsenceAllowance: absenceAllowance, absentClasses, missedAssignments, assignmentStatus, deadline }).message
     }
     if (/休|欠席|出席/.test(message)) {
-      return calculateRisk({ totalClasses, requiredAttendanceRate: requiredAttendanceRate / 100, remainingAbsenceAllowance: absenceAllowance, missedAssignments, assignmentStatus, deadline }).message
+      return calculateRisk({ totalClasses, requiredAttendanceRate: requiredAttendanceRate / 100, remainingAbsenceAllowance: absenceAllowance, absentClasses, missedAssignments, assignmentStatus, deadline }).message
     }
     if (/課題|レポート|締切/.test(message)) {
       if (deadline) {
-        return calculateRisk({ totalClasses, requiredAttendanceRate: requiredAttendanceRate / 100, remainingAbsenceAllowance: absenceAllowance, missedAssignments, assignmentStatus, deadline }).message
+        return calculateRisk({ totalClasses, requiredAttendanceRate: requiredAttendanceRate / 100, remainingAbsenceAllowance: absenceAllowance, absentClasses, missedAssignments, assignmentStatus, deadline }).message
       }
       return '課題は、まず資料を開いて「提出物・締切・評価基準」の3つを確認しよう。最初の10分で見出しだけ作ると進めやすいよ！'
     }
@@ -107,7 +126,7 @@ export function ChatPage() {
       return 'もちろん。分からない言葉をそのまま送ってね。講義でどう使われているかも含めて、かみ砕いて説明するよ。'
     }
     return '相談してくれてありがとう。状況に合った答えを考えたいので、授業名や締切、困っていることをもう少し教えてね。'
-  }, [absenceAllowance, assignmentStatus, deadlineDay, deadlineMonth, missedAssignments, requiredAttendanceRate, totalClasses])
+  }, [absenceAllowance, absentClasses, assignmentStatus, deadlineDay, deadlineMonth, missedAssignments, requiredAttendanceRate, totalClasses])
 
   const sendMessage = useCallback((text: string, attachment?: File) => {
     const trimmed = text.trim()
@@ -118,13 +137,19 @@ export function ChatPage() {
     window.setTimeout(async () => {
       let reply = createReply(trimmed)
       const isEncouragementRequest = /喝|サボ|やる気|危険度|落単/.test(trimmed)
+      let diagnosedRisk: RiskResult | null = null
       try {
         const deadline = deadlineAtEndOfDay(deadlineMonth, deadlineDay)
+        if (isEncouragementRequest) {
+          diagnosedRisk = calculateRisk({ totalClasses, requiredAttendanceRate: requiredAttendanceRate / 100, remainingAbsenceAllowance: absenceAllowance, absentClasses, missedAssignments, assignmentStatus, deadline })
+          reply = diagnosedRisk.message
+        }
         const settings = {
           context: {
             total_classes: totalClasses,
             required_attendance_rate: requiredAttendanceRate / 100,
             remaining_absence_allowance: absenceAllowance,
+            absent_classes: absentClasses,
             missed_assignments: missedAssignments,
             assignment_status: assignmentStatus,
             deadline: deadline ? `${deadlineMonth}月${deadlineDay}日 23:59` : null,
@@ -160,8 +185,9 @@ export function ChatPage() {
       }
       setMessages((prev) => [...prev, { id: id + 1, role: 'assistant', text: reply }])
       setIsThinking(false)
+      if (diagnosedRisk?.level === 3) triggerKatsu(diagnosedRisk)
     }, 350)
-  }, [absenceAllowance, assignmentStatus, createReply, deadlineDay, deadlineMonth, missedAssignments, requiredAttendanceRate, totalClasses])
+  }, [absenceAllowance, absentClasses, assignmentStatus, createReply, deadlineDay, deadlineMonth, missedAssignments, requiredAttendanceRate, totalClasses, triggerKatsu])
 
   useEffect(() => {
     if (initialMessage && !didHandleInitial.current) {
@@ -180,6 +206,17 @@ export function ChatPage() {
     if (!topicId) return;
     localStorage.setItem(`chatHistory_${topicId}`, JSON.stringify(messages));
   }, [messages, topicId]);
+
+  useEffect(() => {
+    if (katsuStage === 'idle') return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previousOverflow }
+  }, [katsuStage])
+
+  useEffect(() => () => {
+    if (katsuTimerRef.current !== null) window.clearTimeout(katsuTimerRef.current)
+  }, [])
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -222,8 +259,35 @@ export function ChatPage() {
     sendMessage(suggestion)
   }
 
+  const remainingAbsences = absenceAllowance - absentClasses
+  const isAttendanceCritical = remainingAbsences <= 1
+  const katsuCommitmentAction = isAttendanceCritical
+    ? `次回以降の${topicName}に必ず出席する`
+    : katsuResult?.action ?? ''
+  const katsuFocusReason = isAttendanceCritical
+    ? `欠席許容回数${absenceAllowance}回に対して、すでに${absentClasses}回欠席しています。あと${Math.max(0, remainingAbsences)}回しか休めません。これ以上の欠席は単位取得に直結する危険な状況です。`
+    : katsuResult?.reason ?? ''
+
+  const confirmCommitment = () => {
+    if (!commitmentChecked || !katsuResult) return
+    setKatsuStage('idle')
+    setMessages((prev) => [...prev, {
+      id: Date.now(),
+      role: 'assistant',
+      text: `宣言、受け取ったよ。まずは **${katsuCommitmentAction}**。ここから一緒に巻き返そう！`,
+    }])
+  }
+
+  const katsuHeadline = isAttendanceCritical
+    ? `あと${Math.max(0, remainingAbsences)}回しか休めないよ！？`
+    : missedAssignments >= 5
+    ? `課題を${missedAssignments}回も出し忘れてるよ！？`
+    : assignmentStatus !== 'submitted' && deadlineAtEndOfDay(deadlineMonth, deadlineDay) && deadlineAtEndOfDay(deadlineMonth, deadlineDay)!.getTime() - Date.now() <= 24 * 60 * 60 * 1000
+      ? `${topicName}の課題、今日が締切だよ！？`
+      : 'このままだと本当に落単するよ！？'
+
   return (
-    <div className="flex h-[720px] flex-col bg-white">
+    <div className={`flex h-[720px] flex-col bg-white ${katsuStage === 'impact' ? 'katsu-screen-shake' : ''}`}>
       <header className="flex items-center gap-3 border-b border-zinc-200 bg-white px-4 py-3">
         {/* 戻るボタン: -1 を指定すると、一つ前のページ(チャット選択画面)に戻ります */}
         <button onClick={() => navigate(-1)} className="p-1 text-zinc-700 hover:text-black" aria-label="戻る"><ArrowLeft className="h-6 w-6" /></button>
@@ -242,6 +306,7 @@ export function ChatPage() {
             <label>授業回数<input type="number" min="1" value={totalClasses} onChange={(e) => setTotalClasses(Number(e.target.value))} className="mt-1 w-full rounded-lg border border-zinc-300 px-2 py-2" /></label>
             <label>必要出席率（自動計算）<input type="text" readOnly value={`${requiredAttendanceRate.toFixed(1)}%`} className="mt-1 w-full cursor-not-allowed rounded-lg border border-zinc-200 bg-zinc-100 px-2 py-2 text-zinc-600" /></label>
             <label>欠席許容回数<input type="number" min="0" max={Math.max(0, totalClasses)} value={absenceAllowance} onChange={(e) => setAbsenceAllowance(Number(e.target.value))} className="mt-1 w-full rounded-lg border border-zinc-300 px-2 py-2" /></label>
+            <label>欠席回数<input type="number" min="0" value={absentClasses} onChange={(e) => setAbsentClasses(Number(e.target.value))} className="mt-1 w-full rounded-lg border border-zinc-300 px-2 py-2" /></label>
             <label>課題状況<select value={assignmentStatus} onChange={(e) => setAssignmentStatus(e.target.value as AssignmentStatus)} className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-2 py-2"><option value="not_started">未着手</option><option value="in_progress">進行中</option><option value="submitted">提出済み</option></select></label>
             <label>課題提出忘れの回数<input type="number" min="0" value={missedAssignments} onChange={(e) => setMissedAssignments(Number(e.target.value))} className="mt-1 w-full rounded-lg border border-zinc-300 px-2 py-2" /></label>
             <fieldset className="col-span-2">
@@ -338,6 +403,31 @@ export function ChatPage() {
           <button type="submit" disabled={isThinking || (!input.trim() && !selectedFile)} className="rounded-full bg-[#ff5d5d] p-2 text-white disabled:cursor-not-allowed disabled:bg-zinc-300" aria-label="送信"><Send className="h-4 w-4" /></button>
         </div>
       </form>
+
+      {katsuStage === 'impact' && (
+        <div className="katsu-impact-overlay" role="alert" aria-live="assertive">
+          <p className="katsu-impact-label">喝</p>
+          <p className="katsu-impact-headline">{katsuHeadline}</p>
+        </div>
+      )}
+
+      {katsuStage === 'commitment' && katsuResult && (
+        <div className="katsu-lock-overlay" role="alertdialog" aria-modal="true" aria-labelledby="katsu-title">
+          <div className="katsu-lock-card">
+            <p className="katsu-lock-kicker">既読スルー禁止</p>
+            <h2 id="katsu-title">まだ間に合う。<br />今ここで決めよう。</h2>
+            <p className="katsu-lock-reason">{katsuFocusReason}</p>
+            <label className="katsu-commitment-check">
+              <input type="checkbox" checked={commitmentChecked} onChange={(event) => setCommitmentChecked(event.target.checked)} />
+              <span>今から「{katsuCommitmentAction}」</span>
+            </label>
+            <button type="button" disabled={!commitmentChecked} onClick={confirmCommitment} className="katsu-commitment-button">
+              行動を開始する
+            </button>
+            <p className="katsu-lock-note">チェックするまで、この画面は閉じられません。</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
