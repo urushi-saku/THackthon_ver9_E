@@ -13,6 +13,9 @@ from google import genai
 from pydantic import BaseModel, ConfigDict, Field
 from supabase import Client, create_client
 
+from app.gemini import GeminiGenerationError, generate_gemini_reply
+from app.schemas import ChatMessageRequest, ChatMessageResponse
+
 logger = logging.getLogger(__name__)
 
 # リポジトリ直下の .env から、外部サービスの接続情報を読み込む。
@@ -175,6 +178,36 @@ def config_status() -> dict[str, str | bool | list[str]]:
         "gemini_model": GEMINI_MODEL,
         "frontend_origins": FRONTEND_ORIGINS,
     }
+
+
+@app.post("/chat", response_model=ChatMessageResponse)
+def create_chat_reply(request: ChatMessageRequest) -> ChatMessageResponse:
+    """ぽけ先輩のシステムプロンプトを使って相談へ回答する。"""
+
+    if gemini_client is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Gemini is not configured",
+        )
+
+    try:
+        reply = generate_gemini_reply(
+            client=gemini_client,
+            model=GEMINI_MODEL,
+            user_message=request.message,
+            user_settings=request.user_settings,
+        )
+    except GeminiGenerationError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Gemini chat generation failed")
+        raise HTTPException(status_code=502, detail="Failed to generate chat reply") from exc
+
+    return ChatMessageResponse(
+        user_id=request.user_id,
+        message=request.message,
+        reply=reply,
+    )
 
 
 @app.get("/reviews", response_model=list[Review])
