@@ -4,6 +4,11 @@ import { useNavigate } from 'react-router-dom'
 export function SummaryPage() {
   const navigate = useNavigate()
 
+  const handleFileSelect = (file: File | undefined) => {
+    if (!file) return
+    navigate('/summary/result', { state: { file } })
+  }
+
   return (
     <div className="min-h-[720px] bg-white">
       <header className="flex items-center gap-4 border-b border-zinc-200 px-4 py-3">
@@ -16,7 +21,7 @@ export function SummaryPage() {
         <label className="flex h-36 cursor-pointer flex-col items-center justify-center rounded-[28px] border border-[#ff5d5d] bg-white text-2xl text-zinc-900 transition hover:bg-rose-50">
           <Upload className="mb-2 h-7 w-7 text-[#ff5d5d]" />
           PDFを選択
-          <input type="file" accept="application/pdf" className="hidden" />
+          <input type="file" accept="application/pdf" onChange={(event) => handleFileSelect(event.target.files?.[0])} className="hidden" />
         </label>
 
         <label className="flex h-36 cursor-pointer flex-col items-center justify-center rounded-[28px] border border-zinc-600 bg-zinc-200 text-zinc-700 transition hover:bg-zinc-100">
@@ -24,7 +29,7 @@ export function SummaryPage() {
           <span className="text-2xl">音声を録音</span>
           <span className="my-1 text-sm">または</span>
           <span className="text-xl">音声ファイルを選択</span>
-          <input type="file" accept="audio/*" className="hidden" />
+          <input type="file" accept="audio/*" onChange={(event) => handleFileSelect(event.target.files?.[0])} className="hidden" />
         </label>
       </main>
     </div>

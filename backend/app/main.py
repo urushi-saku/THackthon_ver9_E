@@ -1,4 +1,5 @@
 import logging
+import json
 import os
 from datetime import datetime
 from pathlib import Path
@@ -7,13 +8,13 @@ from urllib.parse import urlparse
 from uuid import UUID
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query, status
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 from pydantic import BaseModel, ConfigDict, Field
 from supabase import Client, create_client
 
-from app.gemini import GeminiGenerationError, generate_gemini_reply
+from app.gemini import GeminiGenerationError, generate_gemini_file_summary, generate_gemini_reply, generate_gemini_reply_with_file
 from app.schemas import ChatMessageRequest, ChatMessageResponse
 
 logger = logging.getLogger(__name__)
@@ -208,6 +209,92 @@ def create_chat_reply(request: ChatMessageRequest) -> ChatMessageResponse:
         message=request.message,
         reply=reply,
     )
+
+
+@app.post("/chat/with-file", response_model=ChatMessageResponse)
+async def create_chat_reply_with_file(
+    user_id: Annotated[str, Form(min_length=1)],
+    message: Annotated[str, Form(min_length=1)],
+    user_settings: Annotated[str, Form()] = "{}",
+    attachment: UploadFile = File(...),
+) -> ChatMessageResponse:
+    """添付ファイル本体をGeminiへ渡して相談へ回答する。"""
+
+    if gemini_client is None:
+        raise HTTPException(status_code=503, detail="Gemini is not configured")
+
+    mime_type = attachment.content_type or "application/octet-stream"
+    supported = (
+        mime_type == "application/pdf"
+        or mime_type in {"text/plain", "text/markdown"}
+        or mime_type.startswith("image/")
+        or mime_type.startswith("audio/")
+    )
+    if not supported:
+        raise HTTPException(status_code=415, detail="Unsupported file type")
+
+    file_data = await attachment.read(10 * 1024 * 1024 + 1)
+    if len(file_data) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File size must be 10MB or less")
+    if not file_data:
+        raise HTTPException(status_code=400, detail="The attached file is empty")
+
+    try:
+        settings = json.loads(user_settings)
+        if not isinstance(settings, dict):
+            raise ValueError
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid user_settings") from exc
+
+    try:
+        reply = generate_gemini_reply_with_file(
+            client=gemini_client,
+            model=GEMINI_MODEL,
+            user_message=message,
+            file_data=file_data,
+            mime_type=mime_type,
+            user_settings=settings,
+        )
+    except GeminiGenerationError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Gemini file chat generation failed")
+        raise HTTPException(status_code=502, detail="Failed to analyze attached file") from exc
+
+    return ChatMessageResponse(user_id=user_id, message=message, reply=reply)
+
+
+@app.post("/summary")
+async def create_lecture_summary(attachment: UploadFile = File(...)) -> dict[str, str]:
+    """PDFまたは音声の内容を、会話調ではない講義要約に変換する。"""
+
+    if gemini_client is None:
+        raise HTTPException(status_code=503, detail="Gemini is not configured")
+
+    mime_type = attachment.content_type or "application/octet-stream"
+    if mime_type != "application/pdf" and not mime_type.startswith("audio/"):
+        raise HTTPException(status_code=415, detail="PDFまたは音声ファイルを選択してください")
+
+    file_data = await attachment.read(10 * 1024 * 1024 + 1)
+    if len(file_data) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="ファイルサイズは10MB以下にしてください")
+    if not file_data:
+        raise HTTPException(status_code=400, detail="ファイルが空です")
+
+    try:
+        summary = generate_gemini_file_summary(
+            client=gemini_client,
+            model=GEMINI_MODEL,
+            file_data=file_data,
+            mime_type=mime_type,
+        )
+    except GeminiGenerationError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Gemini lecture summary failed")
+        raise HTTPException(status_code=502, detail="講義を要約できませんでした") from exc
+
+    return {"filename": attachment.filename or "添付ファイル", "summary": summary}
 
 
 @app.get("/reviews", response_model=list[Review])
